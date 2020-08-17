@@ -1,0 +1,100 @@
+<odoo>
+    <data>
+        <menuitem id="haierbaby_shop_menu_root" parent="sale.sale_menu_root" name="店铺" sequence="4"/>
+        <!--列表视图-->
+        <record id="haierbaby_shop_tree_view" model="ir.ui.view">
+            <field name="name">店铺列表</field>
+            <field name="model">haierbaby.shop</field>
+            <field name="arch" type="xml">
+                <tree string="店铺列表">
+                    <field name="name"/>
+                    <field name="shop_type"/>
+                    <field name="shop_code"/>
+                    <field name="cerp_code"/>
+                    <field name="partner_id"/>
+                    <field name="finance_code"/>
+                    <field name="company_id"/>
+                    <field name="department_id"/>
+                    <field name="shop_principal_id"/>
+                    <!--<field name="state"/>-->
+                </tree>
+
+            </field>
+        </record>
+        <!--表单视图-->
+        <record id="haierbaby_shop_form_view" model="ir.ui.view">
+            <field name="name">店铺表单</field>
+            <field name="model">haierbaby.shop</field>
+            <field name="arch" type="xml">
+                <form string="店铺表单">
+                    <header>
+                        <!--<button string="提交审批" name="shop_submit" states="draft" type="object" class="oe_highlight"-->
+                                <!--groups="base.group_user"/>-->
+                        <!--<button string="审批" name="shop_approve" states="approving" type="object"-->
+                                <!--class="oe_highlight"/>-->
+                        <!--<button string="驳回" name="shop_reject" states="approving" type="object" class="oe_highlight"-->
+                                <!--groups="base.group_user"/>-->
+                        <!--<field name="state" widget="statusbar" statusbar_visible="draft,approving,done,rejected"/>-->
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
+                                <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
+                            </button>
+                        </div>
+                        <group col="4">
+                            <field name="shop_code"/>
+                            <field name="name"/>
+                            <field name="partner_id"/>
+                            <field name="shop_type" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="cerp_code"/>
+                            <field name="finance_code"/>
+                            <field name="company_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="department_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="shop_principal_id" options="{'no_create': True, 'no_open': True}"/>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+        <!--        搜索视图-->
+        <record id="haierbaby_shop_search_view" model="ir.ui.view">
+            <field name="name">店铺搜索</field>
+            <field name="model">haierbaby.shop</field>
+            <field name="arch" type="xml">
+                <search string="店铺搜索">
+                    <field name="name"/>
+                    <field name="shop_type"/>
+                    <field name="shop_code"/>
+                    <field name="cerp_code"/>
+                    <field name="finance_code"/>
+                    <field name="company_id"/>
+                    <field name="department_id"/>
+                    <field name="shop_principal_id"/>
+                </search>
+            </field>
+        </record>
+
+        <!--	action窗口视图定义-->
+        <record id="action_haierbaby_shop" model="ir.actions.act_window">
+            <field name="name">店铺管理</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">haierbaby.shop</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_ids" eval=""/>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    创建店铺
+                </p>
+            </field>
+        </record>
+        <menuitem id="haierbaby_shop_menu" parent="haierbaby_shop_menu_root" name="店铺管理" action="action_haierbaby_shop"
+                  sequence="1"/>
+    </data>
+</odoo>

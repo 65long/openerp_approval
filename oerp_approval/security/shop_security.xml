@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!--<record id="haierbaby_shop_category" model="ir.module.category">-->
+            <!--<field name="name">海尔婴童|店铺</field>-->
+        <!--</record>-->
+        <!--<record id="haierbaby_shop_group_user" model="res.groups">-->
+            <!--<field name="name">普通用户</field>-->
+            <!--<field name="category_id" ref="haierbaby_shop_category"/>-->
+            <!--<field name="users" eval="[(4, 2)]"/>-->
+            <!--<field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>-->
+        <!--</record>-->
+
+        <!--<record id="haierbaby_shop_group_manager" model="res.groups">-->
+            <!--<field name="name">管理员</field>-->
+            <!--<field name="category_id" ref="haierbaby_shop_category"/>-->
+            <!--&lt;!&ndash;            <field name="users" eval="[(4, 2)]"/>&ndash;&gt;-->
+            <!--<field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>-->
+        <!--</record>-->
+
+        <!--<record id="haierbaby_shop_group_user_only_self" model="ir.rule">-->
+            <!--<field name="name">仅仅管理自己创建的店铺</field>-->
+            <!--<field name="model_id" ref="model_haierbaby_shop"/>-->
+            <!--<field name="groups" eval="[(4, ref('haierbaby_shop_group_user'))]"/>-->
+            <!--<field name="perm_read">1</field>-->
+            <!--<field name="perm_write">1</field>-->
+            <!--<field name="perm_create">1</field>-->
+            <!--<field name="perm_unlink">1</field>-->
+            <!--<field name="domain_force">[-->
+                <!--('create_uid', '=', user.id),-->
+                <!--('department_id', '=', user.department_id.id),-->
+                <!--('company_id', '=', user.company_id.id)-->
+                <!--]-->
+            <!--</field>-->
+        <!--</record>-->
+    </data>
+</odoo>
