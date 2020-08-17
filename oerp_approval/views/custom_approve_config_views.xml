@@ -1,0 +1,83 @@
+<odoo>
+    <data>
+        <menuitem id="custom_approve_config_menu_root" parent="sale.sale_menu_root" name="审批配置" sequence="4"/>
+        <!--列表视图-->
+        <record id="custom_approve_config_tree_view" model="ir.ui.view">
+            <field name="name">审批流列表</field>
+            <field name="model">custom.approve.process.config</field>
+            <field name="arch" type="xml">
+                <tree string="审批列表">
+                    <field name="name"/>
+                    <!--<field name="state"/>-->
+                </tree>
+
+            </field>
+        </record>
+        <!--表单视图-->
+        <record id="custom_approve_config_form_view" model="ir.ui.view">
+            <field name="name">审批流表单</field>
+            <field name="model">custom.approve.process.config</field>
+            <field name="arch" type="xml">
+                <form string="审批流表单">
+                    <header>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <!--<button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">-->
+                                <!--<field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>-->
+                            <!--</button>-->
+                        </div>
+                        <group col="4">
+                            <field name="name"/>
+                            <field name="oa_model_id"/>
+                            <field name="approve_type"/>
+                            <field name="approve_type"/>
+                            <notebook>
+                                <page string="审批和抄送">
+                                    <field name="approve_user_ids">
+                                        <tree string="人员" editable="bottom">
+                                            <field name="user_ids"/>
+                                            <field name="approval_type"/>
+                                        </tree>
+                                    </field>
+                                </page>
+                            </notebook>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+        <!--        搜索视图-->
+        <record id="custom_approve_config_search_view" model="ir.ui.view">
+            <field name="name">审批流搜索</field>
+            <field name="model">custom.approve.process.config</field>
+            <field name="arch" type="xml">
+                <search string="审批流搜索">
+                    <field name="name"/>
+                </search>
+            </field>
+        </record>
+
+        <!--	action窗口视图定义-->
+        <record id="action_custom_approve_config" model="ir.actions.act_window">
+            <field name="name">审批流管理</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">custom.approve.process.config</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_ids" eval=""/>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    创建审批流
+                </p>
+            </field>
+        </record>
+        <menuitem id="custom_approve_config_menu" parent="custom_approve_config_menu_root" name="审批流管理" action="action_custom_approve_config"
+                  sequence="1"/>
+    </data>
+</odoo>

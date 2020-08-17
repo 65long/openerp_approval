@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "海尔婴童 | 店铺",
+    'name': "自定义审批流配置",
 
     'description': """
-        店铺管理界面
+        自定义审批
     """,
 
     'author': "LFL",
@@ -15,7 +15,7 @@
     'data': [
         # 'security/shop_security.xml',
         'security/ir.model.access.csv',
-        # 'views/shop_views.xml',
+        'views/custom_approve_config_views.xml',
         # 'views/shop_type_views.xml',
         # 'data/ir_sequence_data.xml',
     ],
