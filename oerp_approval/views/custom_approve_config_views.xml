@@ -24,25 +24,31 @@
                     <sheet>
                         <div class="oe_button_box" name="button_box">
                             <!--<button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">-->
-                                <!--<field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>-->
+                            <!--<field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>-->
                             <!--</button>-->
                         </div>
                         <group col="4">
                             <field name="name"/>
                             <field name="oa_model_id"/>
-                            <field name="approve_type"/>
-                            <field name="approve_type"/>
-                            <notebook>
-                                <page string="审批和抄送">
+                            <field name="approve_type" string="审核类型"/>
+                        </group>
+                        <notebook>
+                            <page string="审批和抄送">
+                                <group>
                                     <field name="approve_user_ids">
                                         <tree string="人员" editable="bottom">
-                                            <field name="user_ids"/>
+                                            <field name="group_id" placeholder="权限组..."/>
+                                            <field name="user_ids" widget="many2many_tags" placeholder="审批人..."/>
                                             <field name="approval_type"/>
                                         </tree>
                                     </field>
-                                </page>
-                            </notebook>
-                        </group>
+                                </group>
+                                <group>
+                                    <field name="cc_type" string="何时抄送"/>
+                                    <field name="cc_user_ids" string="抄送人" widget="many2many_tags"/>
+                                </group>
+                            </page>
+                        </notebook>
                     </sheet>
                     <div class="oe_chatter">
                         <field name="message_follower_ids" widget="mail_followers"/>
@@ -77,7 +83,8 @@
                 </p>
             </field>
         </record>
-        <menuitem id="custom_approve_config_menu" parent="custom_approve_config_menu_root" name="审批流管理" action="action_custom_approve_config"
+        <menuitem id="custom_approve_config_menu" parent="custom_approve_config_menu_root" name="审批流管理"
+                  action="action_custom_approve_config"
                   sequence="1"/>
     </data>
 </odoo>
