@@ -35,7 +35,6 @@ class ApprovalProcessConfig(models.Model):
         for rec in self:
             if rec.oa_model_id:
                 model_id = rec.oa_model_id
-                print(dir(model_id))
                 result = self.env[model_id.model].fields_view_get()
                 root = etree.fromstring(result['arch'])
                 for item in root.xpath("//header/button"):
@@ -60,13 +59,9 @@ class ApprovalProcessConfig(models.Model):
         module_name = self.oa_model_id.modules
         module_names = module_name.replace(' ', '').split(',')
         current_module = self.env['ir.module.module'].search([('name', 'in', module_names)])
-
-        # current_module.button_immediate_upgrade()
+        current_module.button_immediate_upgrade()
         for record in self.approve_line_ids:
             record = record.agree_button_id
-
-
-
 
 class CustomApproveResUsersRel(models.Model):
     _name = 'custom.approve.node.line'

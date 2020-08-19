@@ -1,6 +1,5 @@
 <odoo>
     <data>
-        <menuitem id="custom_approve_config_menu_root" parent="sale.sale_menu_root" name="审批配置" sequence="4"/>
         <!--列表视图-->
         <record id="custom_approve_config_tree_view" model="ir.ui.view">
             <field name="name">审批流列表</field>
@@ -87,7 +86,7 @@
                 </p>
             </field>
         </record>
-        <menuitem id="custom_approve_config_menu" parent="custom_approve_config_menu_root" name="审批流管理"
+        <menuitem id="custom_approve_config_menu" parent="base.menu_users" name="审批流管理"
                   action="action_custom_approve_config"
                   sequence="1"/>
     </data>

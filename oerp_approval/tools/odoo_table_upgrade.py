@@ -27,21 +27,11 @@ def setup_custom_approve_fields_for_button(self):
     self._cr.execute("SELECT COUNT(*) FROM pg_class WHERE relname = 'custom_approve_process_config'")
     table = self._cr.fetchall()
     if table[0][0] > 0:
-        print('------------此处执行')
-        self._cr.execute(
-            """SELECT im.model, capc.id FROM custom_approve_process_config capc 
-                JOIN ir_model im  ON capc.oa_model_id = im.id  WHERE im.model = '%s'
-            """ % self._name)
         res = self._cr.fetchall()
         if len(res) != 0:
-            config_id = res[0][1]
-            query_s1 = """
-                select agree_button_id, refuse_button_id from custom_approve_node_line as canl 
-                where canl.custom_approve_id= '%s';
-            """ % config_id
-            self._cr.execute(query_s1)
-            button_res = self._cr.fetchall()
-            print(button_res, '查询到的模型名称')
+            add('approve_users', fields.Char(string=u'审批人列表', default='init'))
+            add('approve_template',
+                fields.Many2one('custom.approve.process.config', string=u'审批模板'))
 
     return True
 
