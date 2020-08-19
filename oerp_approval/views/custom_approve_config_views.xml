@@ -20,6 +20,8 @@
             <field name="arch" type="xml">
                 <form string="审批流表单">
                     <header>
+                        <!--button_activate_config_on_click-->
+                        <button name="button_activate_config_on_click" type="object" class="oe_stat_button" string="生效审批"/>
                     </header>
                     <sheet>
                         <div class="oe_button_box" name="button_box">
@@ -35,12 +37,13 @@
                         <notebook>
                             <page string="审批和抄送">
                                 <group>
-                                    <field name="approve_user_ids">
+                                    <field name="approve_line_ids">
                                         <tree string="审批人" editable="bottom">
                                             <field name="group_id" placeholder="权限组..."/>
                                             <field name="user_ids" widget="many2many_tags" placeholder="审批人..."/>
                                             <field name="approval_type"/>
-                                            <field name="view_button_id"/>
+                                            <field name="agree_button_id"/>
+                                            <field name="refuse_button_id"/>
                                         </tree>
                                     </field>
                                 </group>

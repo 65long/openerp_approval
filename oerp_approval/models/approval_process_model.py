@@ -14,13 +14,12 @@ class ApprovalProcessConfig(models.Model):
     _description = '自定义审批流配置'
 
     name = fields.Char(string='审批名称', required=True, track_visibility='onchange')
-    oa_model_id = fields.Many2one('ir.model', string='业务模型', index=True, ondelete='set null')
+    oa_model_id = fields.Many2one('ir.model', string='业务模型', index=True, ondelete='set null', required=True)
     company_id = fields.Many2one('res.company', string='适用公司', required=True,
                                  default=lambda self: self.env.user.company_id, track_visibility='onchange')
     active = fields.Boolean(string='有效', default=True)
     approve_type = fields.Selection(string="审批类型", selection=[('ordinal', '依次审批'), ('complicated', '会签/或签')])
-    # complicated_approve_user_ids = fields.One2many('custom.approve.res.users.rel', 'custom_approve_id', string='审批列表')
-    approve_user_ids = fields.One2many('custom.approve.node.line', 'custom_approve_id', string='审批列表')
+    approve_line_ids = fields.One2many('custom.approve.node.line', 'custom_approve_id', string='审批列表')
     cc_user_ids = fields.Many2many('res.users', 'custom_approve_recv_users_rel', string='抄送人')
     cc_type = fields.Selection(string="抄送时间", selection=[('START', '审批开始'), ('FINISH', '审批结束'), ('START_FINISH', '开始和结束')], default='FINISH')
 
@@ -51,6 +50,24 @@ class ApprovalProcessConfig(models.Model):
                         })
 
 
+    @api.multi
+    def button_activate_config_on_click(self):
+        # 多级审批给业务模型添加多个字段,一个字段记录审批审批模板实例
+        # 通过指定的按钮修改按钮invisible属性
+        # 验证审批
+        self.ensure_one()
+        target_model = self.env[self.oa_model_id.model]
+        module_name = self.oa_model_id.modules
+        module_names = module_name.replace(' ', '').split(',')
+        current_module = self.env['ir.module.module'].search([('name', 'in', module_names)])
+
+        # current_module.button_immediate_upgrade()
+        for record in self.approve_line_ids:
+            record = record.agree_button_id
+
+
+
+
 class CustomApproveResUsersRel(models.Model):
     _name = 'custom.approve.node.line'
     _inherit = ['mail.thread']
@@ -61,10 +78,24 @@ class CustomApproveResUsersRel(models.Model):
     user_ids = fields.Many2many('res.users', 'custom_approval_user_list_rel', string="审批人")
     approval_type = fields.Selection(string="审批类型", selection=[('AND', '会签'), ('OR', '或签'), ('ONE', '单人')],
                                      required=True, default='ONE')
-    view_button_id = fields.Many2one('custom.approve.model.button', string="模型按钮")
+    agree_button_id = fields.Many2one('custom.approve.model.button', string="通过后执行")
+    refuse_button_id = fields.Many2one('custom.approve.model.button', string="拒绝后执行")
 
     # _sql_constraints = [
     # ]
+
+    @api.constrains('approval_type', 'user_ids')
+    def _constrains_approval_type(self):
+        """
+        检查是否配置正确
+        会签/或签列表长度必须大于1，非会签/或签列表长度只能为1
+        :return:
+        """
+        for res in self:
+            if res.approval_type == 'ONE' and len(res.user_ids) > 1:
+                raise UserError("单人时，审批人只能选择一个")
+            if res.approval_type != 'ONE' and len(res.user_ids) <= 1:
+                raise UserError("会签/或签时，审批人至少选择2个")
 
     @api.onchange('group_id')
     def onchange_update_approve_users(self):
