@@ -30,16 +30,17 @@
                         <group col="4">
                             <field name="name"/>
                             <field name="oa_model_id"/>
-                            <field name="approve_type" string="审核类型"/>
+                            <field name="approve_type"/>
                         </group>
                         <notebook>
                             <page string="审批和抄送">
                                 <group>
                                     <field name="approve_user_ids">
-                                        <tree string="人员" editable="bottom">
+                                        <tree string="审批人" editable="bottom">
                                             <field name="group_id" placeholder="权限组..."/>
                                             <field name="user_ids" widget="many2many_tags" placeholder="审批人..."/>
                                             <field name="approval_type"/>
+                                            <field name="view_button_id"/>
                                         </tree>
                                     </field>
                                 </group>
