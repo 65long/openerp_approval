@@ -15,6 +15,7 @@ class ApprovalProcessConfig(models.Model):
 
     name = fields.Char(string='审批名称', required=True, track_visibility='onchange')
     oa_model_id = fields.Many2one('ir.model', string='业务模型', index=True, ondelete='set null', required=True)
+    oa_model_name = fields.Char(string='模型名称', related='oa_model_id.model', store=True, index=True)
     company_id = fields.Many2one('res.company', string='适用公司', required=True,
                                  default=lambda self: self.env.user.company_id, track_visibility='onchange')
     active = fields.Boolean(string='有效', default=True)
@@ -35,6 +36,7 @@ class ApprovalProcessConfig(models.Model):
         for rec in self:
             if rec.oa_model_id:
                 model_id = rec.oa_model_id
+                rec.oa_model_name = model_id.model  # 保存模型_name属性
                 result = self.env[model_id.model].fields_view_get()
                 root = etree.fromstring(result['arch'])
                 for item in root.xpath("//header/button"):
@@ -68,7 +70,7 @@ class CustomApproveResUsersRel(models.Model):
     _inherit = ['mail.thread']
     _description = '自定义审批节点'
 
-    custom_approve_id = fields.Many2one('custom.approve.process.config', string='自定义审批id', required=True)
+    custom_approve_id = fields.Many2one('custom.approve.process.config', string='自定义审批id', ondelete='set null')
     group_id = fields.Many2one('res.groups', string="适用权限组")
     user_ids = fields.Many2many('res.users', 'custom_approval_user_list_rel', string="审批人")
     approval_type = fields.Selection(string="审批类型", selection=[('AND', '会签'), ('OR', '或签'), ('ONE', '单人')],

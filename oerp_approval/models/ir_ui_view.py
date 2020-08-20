@@ -15,7 +15,6 @@ from odoo.tools import pycompat
 
 _logger = logging.getLogger(__name__)
 
-
 ATTRS_WITH_FIELD_NAMES = {
     'context',
     'domain',
@@ -64,7 +63,8 @@ class ir_ui_view(models.Model):
                 attrs = {}
                 views = {}
                 xml_form = E.form(*(f for f in node if f.tag == 'field'))
-                xarch, xfields = self.with_context(base_model_name=model).postprocess_and_fields(node.get('object'), xml_form, view_id)
+                xarch, xfields = self.with_context(base_model_name=model).postprocess_and_fields(node.get('object'),
+                                                                                                 xml_form, view_id)
                 views['form'] = {
                     'arch': xarch,
                     'fields': xfields,
@@ -92,8 +92,10 @@ class ir_ui_view(models.Model):
                     attrs = {'views': views}
                     if field.comodel_name in self.env and field.type in ('many2one', 'many2many'):
                         Comodel = self.env[field.comodel_name]
-                        node.set('can_create', 'true' if Comodel.check_access_rights('create', raise_exception=False) else 'false')
-                        node.set('can_write', 'true' if Comodel.check_access_rights('write', raise_exception=False) else 'false')
+                        node.set('can_create',
+                                 'true' if Comodel.check_access_rights('create', raise_exception=False) else 'false')
+                        node.set('can_write',
+                                 'true' if Comodel.check_access_rights('write', raise_exception=False) else 'false')
                 fields[node.get('name')] = attrs
 
                 field = model_fields.get(node.get('name'))
@@ -128,7 +130,6 @@ class ir_ui_view(models.Model):
 
         orm.transfer_modifiers_to_node(modifiers, node)
         return fields
-
 
     def get_attrs_field_names(self, arch, model, editable):
         """ Retrieve the field names appearing in context, domain and attrs, and
@@ -207,6 +208,7 @@ class ir_ui_view(models.Model):
 
 fields_view_get_origin = models.BaseModel.fields_view_get
 
+
 def modify_tree_view(obj, result):
     fields_info = obj.fields_get(allfields=['dd_doc_state', 'dd_approval_state', 'dd_approval_result'])
     if 'dd_doc_state' in fields_info:
@@ -250,67 +252,85 @@ def modify_tree_view(obj, result):
     root.set('decoration-danger', "dd_approval_result == 'refuse'")
     result['arch'] = etree.tostring(root)
 
-def modify_form_view(self, result):
-    # 判断是否存在<header>
-    # for item in root.xpath("//header/button"):
+
+def update_modifiers_of_element(self, str_modifiers):
+    temp_dic = {}
+    import json
+    try:
+        # str_modifiers = str_modifiers.replace('true', 'True').replace('false', 'False')
+        temp_dic = json.loads(str_modifiers)
+        temp_domain = []
+        print(self.env.user.user_uuid, '===============user_uuid')
+        domain_element = ['approve_users', 'ilike', self.env.user.user_uuid]
+        if 'invisible' not in str_modifiers:
+            temp_domain.append(domain_element)
+        else:
+            temp_val = temp_dic['invisible']
+            print('转换按钮时候的invisible值{}'.format(temp_val))
+            temp_val = temp_val if isinstance(temp_val, (list,)) and temp_val else []
+            temp_val.append(domain_element)
+            if len(temp_val) > 1:
+                temp_val.insert(0, '|')
+            temp_domain = temp_val
+
+        temp_dic['invisible'] = temp_domain
+    except Exception as e:
+        print('处理按钮时候出问题--{}'.format(str(e)))
+        return str_modifiers
+    return json.dumps(temp_dic)
+
+
+def modify_form_view(self, result, button_list):
+    """button_list--[(agree_button_function, agree_button_modifier,
+        refuse_button_function, refuse_button_modifier), ...]"""
+
     root = etree.fromstring(result['arch'])
+
     headers = root.xpath('header')
     if not headers:
-        header = etree.Element('header')
-        root.insert(0, header)
-    else:
-        header = headers[0]
-    # 状态栏
+        _logger.warning('在获取到的视图中未找到header, 配置结束')
+        return
+    header = headers[0]
+    # 添加字段
     approve_users_field = etree.Element('field')
     approve_users_field.set('name', 'approve_users')
     approve_users_field.set('modifiers', '{"invisible": true}')
-    header.approve_users_field(len(header.xpath('button')), approve_users_field)
-    # 审批结果
-    dd_approval_result_field = etree.Element('field')
-    dd_approval_result_field.set('name', 'dd_approval_result')
-    dd_approval_result_field.set('modifiers', '{"invisible": true}')
-    header.insert(len(header.xpath('button')), dd_approval_result_field)
-    # 审批记录按钮
-    button_boxs = root.xpath('//div[@class="oe_button_box"]')
-    if not button_boxs:
-        sheet = root.xpath('//sheet')[0]
-        button_box = etree.SubElement(sheet, 'div')
-        button_box.set('class', 'oe_button_box')
-        button_box.set('name', 'button_box')
-    else:
-        button_box = button_boxs[0]
-    # ----button----
-    record_button = etree.Element('button')
-    record_button.set('name', 'action_dingtalk_approval_record')
-    record_button.set('string', '审批记录')
-    record_button.set('type', 'object')
-    record_button.set('class', 'oe_stat_button')
-    record_button.set('icon', 'fa-list-alt')
-    button_box.insert(1, record_button)
-
-    # 钉钉审批
-    dd_submit_button = etree.Element('button')
-    dd_submit_button.set('string', u'钉钉审批')
-    dd_submit_button.set('class', 'btn-primary')
-    dd_submit_button.set('type', 'object')
-    dd_submit_button.set('name', 'commit_dingtalk_approval')
-    dd_submit_button.set('confirm', '确认提交到钉钉进行审批吗？')
-    dd_submit_button.set('modifiers', '{"invisible": [["dd_approval_state", "!=", "draft"]]}')
-    header.insert(len(header.xpath('button')), dd_submit_button)
-    # 重新提交
-    restart_button = etree.Element('button')
-    restart_button.set('string', u'重新提交')
-    restart_button.set('class', 'btn-primary')
-    restart_button.set('type', 'object')
-    restart_button.set('name', 'restart_commit_approval')
-    restart_button.set('confirm', '确认重新提交单据至钉钉进行审批吗？ *_*!')
-    restart_button.set('modifiers', '{"invisible": [["dd_approval_result", "not in", ["refuse"]]]}')
-    header.insert(len(header.xpath('button')), restart_button)
-    # mail.chatter
-    chatter = root.xpath('//div[@class="oe_chatter"]')
-    if not chatter:
-        form = root.xpath('//form')[0]
-        chatter = etree.SubElement(form, 'div')
-        chatter.set('class', 'oe_chatter')
+    header.insert(len(header.xpath('button')), approve_users_field)
+    # header_str = header.tostring()
+    import json
+    for button in button_list:
+        agree_btn_func, agree_btn_attr, refuse_btn_func, refuse_btn_attr = button
+        btns = header.xpath("//button[@name='{}']".format(refuse_btn_func))
+        # print('btns===========>', btns)
+        for btn in btns:
+            modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'))
+            # btn.set('modifiers', modifier)
+            # btn.set('modifiers', '{"invisible": true}')
     result['arch'] = etree.tostring(root)
+    return
 
+
+def modify_views_by_config(self, result, view_type):
+    if view_type not in ['form']: return
+    config_model = self.env.get('custom.approve.process.config')
+    if config_model is None: return
+    config_obj = config_model.sudo().search([('oa_model_name', '=', self._name)], limit=1)
+    if not config_obj: return
+    if view_type == 'form':
+        button_list = config_obj.approve_line_ids.mapped(lambda line: (
+            line.agree_button_id.function,
+            line.agree_button_id.modifiers,
+            line.refuse_button_id.function,
+            line.refuse_button_id.modifiers,
+        ))
+        modify_form_view(self, result, button_list)
+
+
+@api.model
+def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
+    result = fields_view_get_origin(self, view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+    modify_views_by_config(self, result, view_type)
+    return result
+
+
+models.BaseModel.fields_view_get = fields_view_get
