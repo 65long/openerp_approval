@@ -261,7 +261,7 @@ def update_modifiers_of_element(self, str_modifiers):
         temp_dic = json.loads(str_modifiers)
         temp_domain = []
         print(self.env.user.user_uuid, '===============user_uuid')
-        domain_element = ['approve_users', 'ilike', self.env.user.user_uuid]
+        domain_element = ['approve_users', 'not ilike', self.env.user.user_uuid]
         if 'invisible' not in str_modifiers:
             temp_domain.append(domain_element)
         else:
@@ -298,13 +298,15 @@ def modify_form_view(self, result, button_list):
     header.insert(len(header.xpath('button')), approve_users_field)
     # header_str = header.tostring()
     import json
+    print('====self======>', self)
     for button in button_list:
         agree_btn_func, agree_btn_attr, refuse_btn_func, refuse_btn_attr = button
-        btns = header.xpath("//button[@name='{}']".format(refuse_btn_func))
-        # print('btns===========>', btns)
+        btns = header.xpath("//button[@name='{}']".format(agree_btn_func or 'sfdfasdfsafs'))
+        btns += header.xpath("//button[@name='{}']".format(refuse_btn_func or 'sfadfadsfadsf'))
         for btn in btns:
             modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'))
-            # btn.set('modifiers', modifier)
+            print('========转化后====', modifier)
+            btn.set('modifiers', modifier)
             # btn.set('modifiers', '{"invisible": true}')
     result['arch'] = etree.tostring(root)
     return

@@ -2,8 +2,10 @@
 
 import logging
 from lxml import etree
-from odoo import models, fields, api
+from odoo import models, fields, api, http, _
+from odoo.http import request
 from odoo.exceptions import UserError, Warning
+from odoo.addons.web.controllers.main import DataSet
 
 _logger = logging.getLogger(__name__)
 
@@ -114,3 +116,45 @@ class DingDingApprovalButton(models.Model):
 
     def name_get(self):
         return [(rec.id, "%s:%s" % (rec.model_id.name, rec.name)) for rec in self]
+
+
+class DingDingDataSet(DataSet):
+
+    @http.route('/web/dataset/call_button', type='json', auth="user")
+    def call_button(self, model, method, args, domain_id=None, context_id=None):
+        ir_model = request.env['ir.model'].sudo().search([('model', '=', model)], limit=1)
+        approval = request.env['dingtalk.approval.control'].sudo().search([('oa_model_id', '=', ir_model.id)], limit=1)
+        if approval:
+            # 获取当前单据的id
+            if args[0]:
+                res_id = args[0][0]
+            else:
+                params = args[1].get('params')
+                res_id = params.get('id')
+            # 获取当前单据
+            now_model = request.env[model].sudo().search([('id', '=', res_id)])
+            if now_model and now_model.dd_approval_state == 'draft':
+                start_but_functions = list()
+                for button in approval.model_start_button_ids:
+                    start_but_functions.append(button.function)
+                if method in start_but_functions:
+                    raise UserError(_("本功能暂无法使用，因为单据还没有'提交至钉钉'进行审批，请先提交至钉钉进行审批后再试！"))
+            elif now_model and now_model.dd_approval_state == 'approval':
+                but_functions = list()
+                for button in approval.model_button_ids:
+                    but_functions.append(button.function)
+                if method in but_functions:
+                    raise UserError(_("本功能暂无法使用，因为单据还是'钉钉审批中'状态。请在单据审批后再试！"))
+            elif now_model and now_model.dd_approval_result == 'agree':
+                pass_but_functions = list()
+                for button in approval.model_pass_button_ids:
+                    pass_but_functions.append(button.function)
+                if method in pass_but_functions:
+                    raise UserError(_("本功能暂无法使用，因为单据已经配置了'审批通过后'不允许使用本功能。"))
+            elif now_model and now_model.dd_approval_result == 'refuse':
+                end_but_functions = list()
+                for button in approval.model_end_button_ids:
+                    end_but_functions.append(button.function)
+                if method in end_but_functions:
+                    raise UserError(_("本功能暂无法使用，因为单据已经配置了'审批拒绝后'不允许使用本功能。"))
+        return super(DingDingDataSet, self).call_button(model, method, args, domain_id, context_id)
