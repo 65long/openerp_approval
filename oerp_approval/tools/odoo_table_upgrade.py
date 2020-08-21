@@ -33,7 +33,8 @@ def setup_custom_approve_fields_for_button(self):
             """ % self._name)
         res = self._cr.fetchall()
         if len(res) != 0:
-            add('approve_users', fields.Char(string=u'审批人列表', default='init'))
+            add('approve_users', fields.Char(string=u'同意人列表', default='init', copy=False))
+            add('refuse_users', fields.Char(string=u'拒绝人列表', default='init', copy=False))
             add('approve_template',
                 fields.Many2one('custom.approve.process.config', string=u'审批模板'))
     return True

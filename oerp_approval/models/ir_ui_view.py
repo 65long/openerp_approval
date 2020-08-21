@@ -253,7 +253,7 @@ def modify_tree_view(obj, result):
     result['arch'] = etree.tostring(root)
 
 
-def update_modifiers_of_element(self, str_modifiers):
+def update_modifiers_of_element(self, str_modifiers, approve_users='approve_users'):
     temp_dic = {}
     import json
     try:
@@ -261,7 +261,7 @@ def update_modifiers_of_element(self, str_modifiers):
         temp_dic = json.loads(str_modifiers)
         temp_domain = []
         print(self.env.user.user_uuid, '===============user_uuid')
-        domain_element = ['approve_users', 'not ilike', self.env.user.user_uuid]
+        domain_element = [approve_users, 'not ilike', self.env.user.user_uuid]
         if 'invisible' not in str_modifiers:
             temp_domain.append(domain_element)
         else:
@@ -296,16 +296,23 @@ def modify_form_view(self, result, button_list):
     approve_users_field.set('name', 'approve_users')
     approve_users_field.set('modifiers', '{"invisible": true}')
     header.insert(len(header.xpath('button')), approve_users_field)
-    # header_str = header.tostring()
-    import json
-    print('====self======>', self)
+
+    refuse_users_field = etree.Element('field')
+    refuse_users_field.set('name', 'refuse_users')
+    refuse_users_field.set('modifiers', '{"invisible": true}')
+    header.insert(len(header.xpath('button')), refuse_users_field)
+
     for button in button_list:
         agree_btn_func, agree_btn_attr, refuse_btn_func, refuse_btn_attr = button
-        btns = header.xpath("//button[@name='{}']".format(agree_btn_func or 'sfdfasdfsafs'))
-        btns += header.xpath("//button[@name='{}']".format(refuse_btn_func or 'sfadfadsfadsf'))
-        for btn in btns:
+        agree_btns = header.xpath("//button[@name='{}']".format(agree_btn_func or 'sfdfasdfsafs'))
+        refuse_btns = header.xpath("//button[@name='{}']".format(refuse_btn_func or 'sfadfadsfadsf'))
+        for btn in agree_btns:
             modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'))
-            print('========转化后====', modifier)
+            # print('========同意按钮转化后====', modifier)
+            btn.set('modifiers', modifier)
+        for btn in refuse_btns:
+            modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'), approve_users='refuse_users')
+            # print('========拒接按钮转化后====', modifier)
             btn.set('modifiers', modifier)
             # btn.set('modifiers', '{"invisible": true}')
     result['arch'] = etree.tostring(root)
