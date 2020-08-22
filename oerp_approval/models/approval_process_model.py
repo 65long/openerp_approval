@@ -44,7 +44,10 @@ class ApprovalProcessConfig(models.Model):
                 result = self.env[model_id.model].fields_view_get()
                 root = etree.fromstring(result['arch'])
                 for item in root.xpath("//header/button"):
-                    domain = [('model_id', '=', model_id.id), ('function', '=', item.get('name'))]
+                    func_name = item.get('name')
+                    string_name = item.get('name')
+                    if not func_name: continue
+                    domain = [('model_id', '=', model_id.id), ('function', '=', func_name), ('name', '=', string_name)]
                     model_buts = self.env['custom.approve.model.button'].sudo().search(domain)
                     if not model_buts:
                         self.env['custom.approve.model.button'].create({
@@ -74,11 +77,12 @@ class CustomApproveResUsersRel(models.Model):
     _inherit = ['mail.thread']
     _description = '自定义审批节点'
 
+    APPROVE_TYPE = [('AND', '会签'), ('OR', '或签'), ('ONE', '单人')]
     custom_approve_id = fields.Many2one('custom.approve.process.config', string='自定义审批id', ondelete='set null')
     oa_model_name = fields.Char(related='custom_approve_id.oa_model_name', string="审批模型_name", help='例如sale.order')
     group_id = fields.Many2one('res.groups', string="适用权限组")
     user_ids = fields.Many2many('res.users', 'custom_approval_user_list_rel', string="审批人")
-    approval_type = fields.Selection(string="审批类型", selection=[('AND', '会签'), ('OR', '或签'), ('ONE', '单人')],
+    approval_type = fields.Selection(string="审批类型", selection=APPROVE_TYPE,
                                      required=True, default='ONE')
     agree_button_id = fields.Many2one('custom.approve.model.button', string="通过后执行")
     agree_button_func = fields.Char(string='同意执行方法', related='agree_button_id.function', store=True)
@@ -131,18 +135,22 @@ class CustomApproveDataSet(DataSet):
             ('oa_model_name', '=', model),
             # ('active', '=', True),
         ], limit=1, order='id desc')
-        print(22222222222222222222, approve_conf)
-        # def origin_res()
 
         # 遍历查找当前按钮
         btn_type = ''
+        temp_line_dict = {}
         for line in approve_conf.approve_line_ids:
+            temp_line_dict['next_line'] = line  # 有btn_type则next_line必有值
+            if temp_line_dict.get('cur_line'):
+                break
             if line.agree_button_func == method:
+                # print('------------匹配到当前按钮---=====类型approve_users======')
                 btn_type = 'approve_users'
-                break
+                temp_line_dict['cur_line'] = line
             if line.refuse_button_func == method:
+                # print('------------匹配到当前按钮---=====refuse_users======')
                 btn_type = 'refuse_users'
-                break
+                temp_line_dict['cur_line'] = line
         # 获取当前单据的id
         if args[0]:
             res_id = args[0][0]
@@ -156,36 +164,103 @@ class CustomApproveDataSet(DataSet):
         cur_refuse_users = getattr(cur_record, 'approve_users', '')
         if 'init' in [cur_approve_users, cur_refuse_users]:
             # 此时需要更新approve_users 和 cur_refuse_users
-            users_uuid = ','.join(approve_conf.approve_line_ids[0].sudo().user_ids.mapped('user_uuid'))
+            approve_line = approve_conf.approve_line_ids[0].sudo()
+            users_uuid = ','.join(approve_line.user_ids.mapped('user_uuid'))
             print('==============》此时为init 更新当前审核人', users_uuid)
             cur_record.approve_users = users_uuid
             cur_record.refuse_users = users_uuid
+            self.gen_msg_to_cur_doc(approve_line, cur_record)
         if not btn_type:
-            # 未匹配到当前按钮的类型，就直接返回原来按钮调用
+            # 未匹配当前按钮的在管控列表，就直接返回原来按钮调用
             return super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
 
-
-        # 如果匹配到按钮类型，则判断line的审批类型，同时做审批记录返回页面刷新
-        cur_approve_users = cur_record.approve_users
-        print('=======btn  type=======', btn_type)
+        record_model = request.env['custom.approve.record'].sudo()
+        record_dict = dict(
+            model_name=cur_record._name,
+            rec_id=res_id,
+            oper_uid=request.env.user.id,
+            approval_type=line.approval_type,
+            approval_result='agree',
+        )
         if btn_type == 'approve_users':
+            # 添加审批记录
+            record_model.create(record_dict)
             if line.approval_type == 'AND':
-                # ('AND', '会签'), ('OR', '或签'), ('ONE', '单人审批
                 # 通过之后需要做，将现在用户id的u_uuid替换成空
-                u_uuid = self.env.user.user_uuid
-                temp_approve_users = cur_refuse_users.replace(u_uuid, '')
-                # 判断本级审批是否需要继续,
-                #   需要 则刷新屏幕
-                #   不需要 则更新为配置的下一级审批,调用原生方法
-                print('===============审批过后的approve——uuid', temp_approve_users)
+                u_uuid = request.env.user.user_uuid
+                temp_approve_users = cur_refuse_users.replace('{},'.format(u_uuid), '')
+                temp_approve_users = temp_approve_users.replace(u_uuid, '')
+
+                if temp_approve_users:
+                    # 本级审批要继续,
+                    res = {'type': 'ir.actions.client', 'tag': 'reload'}
+                else:
+                    # 更新当前审批的下一审批节点审批人
+                    next_line = temp_line_dict['next_line']
+                    temp_approve_users = ','.join(next_line.sudo().user_ids.mapped('user_uuid'))
+                    res = super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
+
+                # print('===============审批过后的approve——uuid', temp_approve_users)
                 cur_record.approve_users = temp_approve_users
                 cur_record.refuse_users = temp_approve_users
-                return super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
+                self.gen_msg_to_cur_doc(line, cur_record, 'agree')
+                return res
             elif line.approval_type in ['OR', 'ONE']:
-                pass
                 # 更新到下一级的状态
+                next_line = temp_line_dict['next_line']
+                temp_approve_users = ','.join(next_line.sudo().user_ids.mapped('user_uuid'))
+                cur_record.approve_users = temp_approve_users
+                cur_record.refuse_users = temp_approve_users
+                res = super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
+                self.gen_msg_to_cur_doc(line, cur_record, 'agree')
+                return res
         else:
-            # 审批拒绝不用做任何更改
-            pass
+            # 审批拒绝
+            #     -添加审批记录,调用原来按钮
+            record_dict.update(dict(approval_result='refuse'))
+            record_model.create(record_dict)
+            cur_record.approve_users = 'init'
+            cur_record.refuse_users = 'init'
+            self.gen_msg_to_cur_doc(line.sudo(), cur_record, 'refuse')
+            return super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
 
-        return super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
+    @staticmethod
+    def gen_msg_to_cur_doc(approve_line, cur_record, msg_type='tip'):
+        type_str_dict = dict(approve_line.APPROVE_TYPE)
+        approve_type = type_str_dict.get(approve_line.approval_type)
+        cur_user_name = request.env.user.name
+        if msg_type == 'tip':
+
+            msg = '该单据当前审批类型:{}, 审批人{}'. \
+                format(approve_type,
+                       ','.join(approve_line.user_ids.mapped('name')))
+        elif msg_type == 'agree':
+            msg = '该单据当前审批类型{}, {}通过了审批，悉知'.format(approve_type, cur_user_name)
+        elif msg_type == 'refuse':
+            msg = '该单据当前审批类型{}, {}拒绝了审批，悉知'.format(approve_type, cur_user_name)
+
+        cur_record.message_post(body=msg, message_type='notification')
+
+
+
+def _action_custom_approval_record(self):
+    """
+    跳转到自定义审批记录tree
+    :param self:
+    :return:
+    """
+    self.ensure_one()
+    return {
+        "type": "ir.actions.act_window",
+        "res_model": "custom.approve.record",
+        "views": [[False, "tree"]],
+        "name": "审批记录",
+        "domain": [["model_name", "=", self._name], ['rec_id', '=', self.id]],
+        "context": {
+            # 'search_default_group_by_model': 0,
+            # 'search_default_group_by_process_instance': 0
+        },
+    }
+
+
+setattr(models.Model, 'action_custom_approve_record', _action_custom_approval_record)

@@ -18,6 +18,7 @@
         'views/custom_approve_config_views.xml',
         # 'views/shop_type_views.xml',
         # 'data/ir_sequence_data.xml',
+        'views/custom_approve_record.xml',
     ],
     'installable': True,
     'auto_install': False

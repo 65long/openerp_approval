@@ -257,16 +257,15 @@ def update_modifiers_of_element(self, str_modifiers, approve_users='approve_user
     temp_dic = {}
     import json
     try:
-        # str_modifiers = str_modifiers.replace('true', 'True').replace('false', 'False')
         temp_dic = json.loads(str_modifiers)
+        print('========button========', temp_dic)
         temp_domain = []
-        print(self.env.user.user_uuid, '===============user_uuid')
         domain_element = [approve_users, 'not ilike', self.env.user.user_uuid]
         if 'invisible' not in str_modifiers:
             temp_domain.append(domain_element)
         else:
             temp_val = temp_dic['invisible']
-            print('转换按钮时候的invisible值{}'.format(temp_val))
+            # print('转换按钮时候的invisible值{}'.format(temp_val))
             temp_val = temp_val if isinstance(temp_val, (list,)) and temp_val else []
             temp_val.append(domain_element)
             if len(temp_val) > 1:
@@ -302,19 +301,42 @@ def modify_form_view(self, result, button_list):
     refuse_users_field.set('modifiers', '{"invisible": true}')
     header.insert(len(header.xpath('button')), refuse_users_field)
 
+    # 审批记录按钮
+    button_boxs = root.xpath('//div[@class="oe_button_box"]')
+    if not button_boxs:
+        sheet = root.xpath('//sheet')[0]
+        button_box = etree.SubElement(sheet, 'div')
+        button_box.set('class', 'oe_button_box')
+        button_box.set('name', 'button_box')
+    else:
+        button_box = button_boxs[0]
+    # ----button----
+    record_button = etree.Element('button')
+    record_button.set('name', 'action_custom_approve_record')
+    record_button.set('string', '审批记录')
+    record_button.set('type', 'object')
+    record_button.set('class', 'oe_stat_button')
+    record_button.set('icon', 'fa-list-alt')
+    button_box.insert(1, record_button)
+
     for button in button_list:
-        agree_btn_func, agree_btn_attr, refuse_btn_func, refuse_btn_attr = button
+        agree_btn_func, agree_btn_string, refuse_btn_func, refuse_btn_string = button
         agree_btns = header.xpath("//button[@name='{}']".format(agree_btn_func or 'sfdfasdfsafs'))
         refuse_btns = header.xpath("//button[@name='{}']".format(refuse_btn_func or 'sfadfadsfadsf'))
         for btn in agree_btns:
+            if btn.get('string') != agree_btn_string:
+                # 忽略重复的按钮
+                continue
             modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'))
-            # print('========同意按钮转化后====', modifier)
+            _logger.warning('修改拒绝按钮{},:排除重复get-{}'.format(btn.get('string'), refuse_btn_string))
             btn.set('modifiers', modifier)
         for btn in refuse_btns:
+            if btn.get('string') != refuse_btn_string:
+                # 忽略重复的按钮
+                _logger.warning('修改按钮{},:排除重复get-{}'.format(btn.get('string'), refuse_btn_string))
+                continue
             modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'), approve_users='refuse_users')
-            # print('========拒接按钮转化后====', modifier)
             btn.set('modifiers', modifier)
-            # btn.set('modifiers', '{"invisible": true}')
     result['arch'] = etree.tostring(root)
     return
 
@@ -328,9 +350,9 @@ def modify_views_by_config(self, result, view_type):
     if view_type == 'form':
         button_list = config_obj.approve_line_ids.mapped(lambda line: (
             line.agree_button_id.function,
-            line.agree_button_id.modifiers,
+            line.agree_button_id.name,
             line.refuse_button_id.function,
-            line.refuse_button_id.modifiers,
+            line.refuse_button_id.name,
         ))
         modify_form_view(self, result, button_list)
 
