@@ -12,15 +12,15 @@ _logger = logging.getLogger(__name__)
 
 class ApprovalProcessConfig(models.Model):
     _name = 'custom.approve.process.config'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    # _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = '自定义审批流配置'
 
     name = fields.Char(string='审批名称', required=True, track_visibility='onchange')
-    oa_model_id = fields.Many2one('ir.model', string='业务模型', index=True, ondelete='set null', required=True)
+    oa_model_id = fields.Many2one('ir.model', string='业务模型', index=True, ondelete='cascade', required=True)
     oa_model_name = fields.Char(string='模型名称', related='oa_model_id.model', store=True, index=True)
     company_id = fields.Many2one('res.company', string='适用公司', required=True,
                                  default=lambda self: self.env.user.company_id, track_visibility='onchange')
-    active = fields.Boolean(string='有效', default=True)
+    active = fields.Boolean(string='有效', default=False)
     approve_type = fields.Selection(string="审批类型", selection=[('ordinal', '依次审批'), ('complicated', '会签/或签')])
     approve_line_ids = fields.One2many('custom.approve.node.line', 'custom_approve_id', string='审批列表')
     cc_user_ids = fields.Many2many('res.users', 'custom_approve_recv_users_rel', string='抄送人')
@@ -68,17 +68,16 @@ class ApprovalProcessConfig(models.Model):
         module_names = module_name.replace(' ', '').split(',')
         current_module = self.env['ir.module.module'].search([('name', 'in', module_names)])
         current_module.button_immediate_upgrade()
-        for record in self.approve_line_ids:
-            record = record.agree_button_id
+        self.active = True
 
 
 class CustomApproveResUsersRel(models.Model):
     _name = 'custom.approve.node.line'
-    _inherit = ['mail.thread']
+    # _inherit = ['mail.thread']
     _description = '自定义审批节点'
 
     APPROVE_TYPE = [('AND', '会签'), ('OR', '或签'), ('ONE', '单人')]
-    custom_approve_id = fields.Many2one('custom.approve.process.config', string='自定义审批id', ondelete='set null')
+    custom_approve_id = fields.Many2one('custom.approve.process.config', string='自定义审批id', ondelete='cascade')
     oa_model_name = fields.Char(related='custom_approve_id.oa_model_name', string="审批模型_name", help='例如sale.order')
     group_id = fields.Many2one('res.groups', string="适用权限组")
     user_ids = fields.Many2many('res.users', 'custom_approval_user_list_rel', string="审批人")
@@ -117,7 +116,7 @@ class DingDingApprovalButton(models.Model):
     _description = '自定义审批流模型按钮'
     _rec_name = 'name'
 
-    model_id = fields.Many2one('ir.model', string='模型', index=True)
+    model_id = fields.Many2one('ir.model', string='模型', index=True, ondelete='cascade')
     model_model = fields.Char(string='模型名', related='model_id.model', store=True, index=True)
     name = fields.Char(string="按钮名称", index=True)
     function = fields.Char(string='按钮方法', index=True)
@@ -133,7 +132,7 @@ class CustomApproveDataSet(DataSet):
     def call_button(self, model, method, args, domain_id=None, context_id=None):
         approve_conf = request.env['custom.approve.process.config'].sudo().search([
             ('oa_model_name', '=', model),
-            # ('active', '=', True),
+            ('active', '=', True),
         ], limit=1, order='id desc')
 
         # 遍历查找当前按钮

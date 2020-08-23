@@ -337,7 +337,10 @@ def modify_views_by_config(self, result, view_type):
     if view_type not in ['form']: return
     config_model = self.env.get('custom.approve.process.config')
     if config_model is None: return
-    config_obj = config_model.sudo().search([('oa_model_name', '=', self._name)], limit=1)
+    config_obj = config_model.sudo().search([
+        ('oa_model_name', '=', self._name),
+        ('active', '=', True),
+    ], limit=1)
     if not config_obj: return
     if view_type == 'form':
         button_list = config_obj.approve_line_ids.mapped(lambda line: (
