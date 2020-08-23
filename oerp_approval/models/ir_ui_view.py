@@ -343,13 +343,17 @@ def modify_views_by_config(self, result, view_type):
     ], limit=1)
     if not config_obj: return
     if view_type == 'form':
-        button_list = config_obj.approve_line_ids.mapped(lambda line: (
-            line.agree_button_id.function,
-            line.agree_button_id.name,
-            line.refuse_button_id.function,
-            line.refuse_button_id.name,
-        ))
-        modify_form_view(self, result, button_list)
+        btn_list = []
+        lines = config_obj.approve_line_ids.mapped(lambda line: line.approval_type in ['ONE', 'AND', 'OR'])
+        for line in lines:
+            t = (
+                line.agree_button_id.function,
+                line.agree_button_id.name,
+                line.refuse_button_id.function,
+                line.refuse_button_id.name,
+            )
+            btn_list.append(t)
+        modify_form_view(self, result, btn_list)
 
 
 @api.model

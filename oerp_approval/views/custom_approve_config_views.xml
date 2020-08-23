@@ -36,10 +36,10 @@
                         <notebook>
                             <page string="审批和抄送">
                                 <group>
-                                    <field name="approve_line_ids">
+                                    <field name="approve_line_ids" string="审批节点">
                                         <tree string="审批人" editable="bottom">
                                             <field name="group_id" placeholder="权限组..."/>
-                                            <field name="user_ids" widget="many2many_tags" placeholder="审批人..."/>
+                                            <field name="user_ids" widget="many2many_tags" string="审批/申请人"/>
                                             <field name="approval_type"/>
                                             <field name="agree_button_id"/>
                                             <field name="refuse_button_id"/>

@@ -76,7 +76,7 @@ class CustomApproveResUsersRel(models.Model):
     # _inherit = ['mail.thread']
     _description = '自定义审批节点'
 
-    APPROVE_TYPE = [('AND', '会签'), ('OR', '或签'), ('ONE', '单人')]
+    APPROVE_TYPE = [('AND', '会签'), ('OR', '或签'), ('ONE', '单人'), ('submit', '提交'), ('cancel', '取消')]
     custom_approve_id = fields.Many2one('custom.approve.process.config', string='自定义审批id', ondelete='cascade')
     oa_model_name = fields.Char(related='custom_approve_id.oa_model_name', string="审批模型_name", help='例如sale.order')
     group_id = fields.Many2one('res.groups', string="适用权限组")
