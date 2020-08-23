@@ -1,2 +1,5 @@
 id,name,model_id/id,group_id/id,perm_read,perm_write,perm_create,perm_unlink
+access_custom_approve_conf,name_custom_approve_conf,model_custom_approve_process_config,oerp_approval.custom_approve_group_manager,1,1,1,1
+access_custom_node_line,name_custom_node_line,model_custom_approve_node_line,oerp_approval.custom_approve_group_manager,1,1,1,1
+access_custom_approve_button,name_custom_approve_button,model_custom_approve_model_button,oerp_approval.custom_approve_group_manager,1,1,1,1
 access_custom_approve_record,name_custom_approve_record,model_custom_approve_record,base.group_user,1,0,0,0

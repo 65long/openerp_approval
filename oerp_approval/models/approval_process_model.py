@@ -161,14 +161,12 @@ class CustomApproveDataSet(DataSet):
         # 获取当前记录
         cur_record = request.env[model].sudo().browse(res_id)
         cur_approve_users = getattr(cur_record, 'approve_users', '')
-        cur_refuse_users = getattr(cur_record, 'approve_users', '')
-        if 'init' in [cur_approve_users, cur_refuse_users]:
+        if 'init' in [cur_approve_users]:
             # 此时需要更新approve_users 和 cur_refuse_users
             approve_line = approve_conf.approve_line_ids[0].sudo()
             users_uuid = ','.join(approve_line.user_ids.mapped('user_uuid'))
             print('==============》此时为init 更新当前审核人', users_uuid)
             cur_record.approve_users = users_uuid
-            cur_record.refuse_users = users_uuid
             self.gen_msg_to_cur_doc(approve_line, cur_record)
         if not btn_type:
             # 未匹配当前按钮的在管控列表，就直接返回原来按钮调用
@@ -188,7 +186,7 @@ class CustomApproveDataSet(DataSet):
             if line.approval_type == 'AND':
                 # 通过之后需要做，将现在用户id的u_uuid替换成空
                 u_uuid = request.env.user.user_uuid
-                temp_approve_users = cur_refuse_users.replace('{},'.format(u_uuid), '')
+                temp_approve_users = cur_approve_users.replace('{},'.format(u_uuid), '')
                 temp_approve_users = temp_approve_users.replace(u_uuid, '')
 
                 if temp_approve_users:
@@ -202,7 +200,6 @@ class CustomApproveDataSet(DataSet):
 
                 # print('===============审批过后的approve——uuid', temp_approve_users)
                 cur_record.approve_users = temp_approve_users
-                cur_record.refuse_users = temp_approve_users
                 self.gen_msg_to_cur_doc(line, cur_record, 'agree')
                 return res
             elif line.approval_type in ['OR', 'ONE']:
@@ -210,9 +207,8 @@ class CustomApproveDataSet(DataSet):
                 next_line = temp_line_dict['next_line']
                 temp_approve_users = ','.join(next_line.sudo().user_ids.mapped('user_uuid'))
                 cur_record.approve_users = temp_approve_users
-                cur_record.refuse_users = temp_approve_users
-                res = super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
                 self.gen_msg_to_cur_doc(line, cur_record, 'agree')
+                res = super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
                 return res
         else:
             # 审批拒绝

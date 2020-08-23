@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="0">
-        <!--<record id="haierbaby_shop_category" model="ir.module.category">-->
-            <!--<field name="name">海尔婴童|店铺</field>-->
-        <!--</record>-->
-        <!--<record id="haierbaby_shop_group_user" model="res.groups">-->
-            <!--<field name="name">普通用户</field>-->
-            <!--<field name="category_id" ref="haierbaby_shop_category"/>-->
-            <!--<field name="users" eval="[(4, 2)]"/>-->
-            <!--<field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>-->
-        <!--</record>-->
+        <record id="custom_approve_category" model="ir.module.category">
+            <field name="name">自定义审批流</field>
+        </record>
+        <record id="custom_approve_group_manager" model="res.groups">
+            <field name="name">管理员</field>
+            <field name="category_id" ref="custom_approve_category"/>
+            <field name="users" eval="[(4, 2), (4, 1)]"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
 
         <!--<record id="haierbaby_shop_group_manager" model="res.groups">-->
             <!--<field name="name">管理员</field>-->

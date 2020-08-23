@@ -13,7 +13,7 @@
     'version': '1.0',
     'depends': ['base', 'mail'],
     'data': [
-        # 'security/shop_security.xml',
+        'security/custom_approve_security.xml',
         'security/ir.model.access.csv',
         'views/custom_approve_config_views.xml',
         # 'views/shop_type_views.xml',

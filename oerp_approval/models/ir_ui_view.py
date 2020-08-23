@@ -258,7 +258,6 @@ def update_modifiers_of_element(self, str_modifiers, approve_users='approve_user
     import json
     try:
         temp_dic = json.loads(str_modifiers)
-        print('========button========', temp_dic)
         temp_domain = []
         domain_element = [approve_users, 'not ilike', self.env.user.user_uuid]
         if 'invisible' not in str_modifiers:
@@ -296,10 +295,10 @@ def modify_form_view(self, result, button_list):
     approve_users_field.set('modifiers', '{"invisible": true}')
     header.insert(len(header.xpath('button')), approve_users_field)
 
-    refuse_users_field = etree.Element('field')
-    refuse_users_field.set('name', 'refuse_users')
-    refuse_users_field.set('modifiers', '{"invisible": true}')
-    header.insert(len(header.xpath('button')), refuse_users_field)
+    # refuse_users_field = etree.Element('field')
+    # refuse_users_field.set('name', 'refuse_users')
+    # refuse_users_field.set('modifiers', '{"invisible": true}')
+    # header.insert(len(header.xpath('button')), refuse_users_field)
 
     # 审批记录按钮
     button_boxs = root.xpath('//div[@class="oe_button_box"]')
@@ -321,21 +320,14 @@ def modify_form_view(self, result, button_list):
 
     for button in button_list:
         agree_btn_func, agree_btn_string, refuse_btn_func, refuse_btn_string = button
-        agree_btns = header.xpath("//button[@name='{}']".format(agree_btn_func or 'sfdfasdfsafs'))
-        refuse_btns = header.xpath("//button[@name='{}']".format(refuse_btn_func or 'sfadfadsfadsf'))
-        for btn in agree_btns:
-            if btn.get('string') != agree_btn_string:
+        btns = header.xpath("//button[@name='{}']".format(agree_btn_func or 'sfdfasdfsafs'))
+        btns += header.xpath("//button[@name='{}']".format(refuse_btn_func or 'sfadfadsfadsf'))
+        for btn in btns:
+            if btn.get('string') not in [agree_btn_string, refuse_btn_string]:
                 # 忽略重复的按钮
+                _logger.warning('修改按钮{},:排除重复'.format(btn.get('string')))
                 continue
             modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'))
-            _logger.warning('修改拒绝按钮{},:排除重复get-{}'.format(btn.get('string'), refuse_btn_string))
-            btn.set('modifiers', modifier)
-        for btn in refuse_btns:
-            if btn.get('string') != refuse_btn_string:
-                # 忽略重复的按钮
-                _logger.warning('修改按钮{},:排除重复get-{}'.format(btn.get('string'), refuse_btn_string))
-                continue
-            modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'), approve_users='refuse_users')
             btn.set('modifiers', modifier)
     result['arch'] = etree.tostring(root)
     return
