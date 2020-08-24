@@ -5,7 +5,7 @@ import logging
 from lxml import etree
 # from lxml.etree import LxmlError
 import ast
-from odoo.addons.oerp_approval.models.ext_func import transfer_node_to_modifiers
+from odoo.addons.oerp_approval.tools.ext_func import transfer_node_to_modifiers
 from odoo import api, fields, models, tools, SUPERUSER_ID, _
 from odoo.osv import orm
 from lxml.builder import E
@@ -295,10 +295,15 @@ def modify_form_view(self, result, button_list):
     approve_users_field.set('modifiers', '{"invisible": true}')
     header.insert(len(header.xpath('button')), approve_users_field)
 
-    # refuse_users_field = etree.Element('field')
-    # refuse_users_field.set('name', 'refuse_users')
-    # refuse_users_field.set('modifiers', '{"invisible": true}')
-    # header.insert(len(header.xpath('button')), refuse_users_field)
+    submit_users_field = etree.Element('field')
+    submit_users_field.set('name', 'submit_users')
+    submit_users_field.set('modifiers', '{"invisible": true}')
+    header.insert(len(header.xpath('button')), submit_users_field)
+
+    cancel_users_field = etree.Element('field')
+    cancel_users_field.set('name', 'cancel_users')
+    cancel_users_field.set('modifiers', '{"invisible": true}')
+    header.insert(len(header.xpath('button')), cancel_users_field)
 
     # 审批记录按钮
     button_boxs = root.xpath('//div[@class="oe_button_box"]')
@@ -318,16 +323,30 @@ def modify_form_view(self, result, button_list):
     record_button.set('icon', 'fa-list-alt')
     button_box.insert(1, record_button)
 
-    for button in button_list:
-        agree_btn_func, agree_btn_string, refuse_btn_func, refuse_btn_string = button
-        btns = header.xpath("//button[@name='{}']".format(agree_btn_func or 'sfdfasdfsafs'))
-        btns += header.xpath("//button[@name='{}']".format(refuse_btn_func or 'sfadfadsfadsf'))
+    for button_dict in button_list:
+        agree_btn_func = button_dict.get('agree_btn_func', 'sfdfasdfsafs')
+        agree_btn_string = button_dict.get('agree_btn_string', 'sfdfasdfsafs')
+        refuse_btn_func = button_dict.get('refuse_btn_func', 'sfdfasdfsafs')
+        refuse_btn_string = button_dict.get('refuse_btn_string', 'sfdfasdfsafs')
+        node_line_type = button_dict.get('node_line_type', 'sfdfasdfsafs')
+        node_only_self = button_dict.get('node_only_self', 'sfdfasdfsafs')
+
+        if node_line_type in ['AND', 'OR', 'ONE']:
+            control_users = 'approve_users'
+        elif node_line_type in ['submit']:
+            control_users = 'submit_users'
+        elif node_line_type in ['cancel']:
+            control_users = 'cancel_users'
+        else:
+            control_users='create_uid.user_uuid'
+        btns = header.xpath("//button[@name='{}']".format(agree_btn_func))
+        btns += header.xpath("//button[@name='{}']".format(refuse_btn_func))
         for btn in btns:
             if btn.get('string') not in [agree_btn_string, refuse_btn_string]:
                 # 忽略重复的按钮
                 _logger.warning('修改按钮{},:排除重复'.format(btn.get('string')))
                 continue
-            modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'))
+            modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'), control_users)
             btn.set('modifiers', modifier)
     result['arch'] = etree.tostring(root)
     return
@@ -344,13 +363,18 @@ def modify_views_by_config(self, result, view_type):
     if not config_obj: return
     if view_type == 'form':
         btn_list = []
-        lines = config_obj.approve_line_ids.mapped(lambda line: line.approval_type in ['ONE', 'AND', 'OR'])
+        lines = config_obj.approve_line_ids
+        # .filtered(lambda line: line.approval_type in ['ONE', 'AND', 'OR'])
         for line in lines:
-            t = (
-                line.agree_button_id.function,
-                line.agree_button_id.name,
-                line.refuse_button_id.function,
-                line.refuse_button_id.name,
+            # agree_btn_func, agree_btn_string, refuse_btn_func, refuse_btn_string,
+            # node_line_type, node_only_self
+            t = dict(
+                agree_btn_func=line.agree_button_id.function,
+                agree_btn_string=line.agree_button_id.name,
+                refuse_btn_func=line.refuse_button_id.function,
+                refuse_btn_string=line.refuse_button_id.name,
+                node_line_type=line.approval_type,
+                node_only_self=line.only_self,
             )
             btn_list.append(t)
         modify_form_view(self, result, btn_list)

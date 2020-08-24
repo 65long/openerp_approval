@@ -7,7 +7,7 @@ class DingDingApprovalRecord(models.Model):
     _name = 'custom.approve.record'
     _description = '自定义审批记录'
 
-    APPROVALRESULT = [('load', '等待'), ('agree', '同意'), ('refuse', '拒绝'), ('redirect', '转交')]
+    APPROVALRESULT = [('submit', '提交'), ('agree', '同意'), ('refuse', '拒绝'), ('cancel', '取消')]
 
     model_name = fields.Char(string='模型名称', index=True)
     rec_id = fields.Integer(string="记录ID", index=True)

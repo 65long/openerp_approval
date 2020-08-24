@@ -41,6 +41,7 @@
                                             <field name="group_id" placeholder="权限组..."/>
                                             <field name="user_ids" widget="many2many_tags" string="审批/申请人"/>
                                             <field name="approval_type"/>
+                                            <field name="only_self" string="仅发起人可用"/>
                                             <field name="agree_button_id"/>
                                             <field name="refuse_button_id"/>
                                         </tree>
