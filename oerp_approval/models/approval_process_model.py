@@ -142,7 +142,7 @@ class CustomApproveDataSet(DataSet):
         temp_line_dict = {}
         approve_lines = approve_conf.approve_line_ids
         for line in approve_lines:
-            temp_line_dict['next_line'] = line.sudo()  # 有btn_type则next_line必有值
+            # temp_line_dict['next_line'] = line.sudo()  # 有btn_type则next_line必有值
             if temp_line_dict.get('cur_line'):
                 break
             if line.agree_button_func == method:
@@ -151,9 +151,12 @@ class CustomApproveDataSet(DataSet):
             if line.refuse_button_func == method:
                 btn_type = 'refuse'
                 temp_line_dict['cur_line'] = line.sudo()
-
             if not temp_line_dict.get('cur_line'):
                 continue
+            next_lines = approve_lines.filtered(
+                lambda apl: apl.id > line.id and apl.approval_type in ['AND', 'OR', 'ONE']
+            )
+            temp_line_dict['next_line'] = next_lines[0].sudo() if next_lines else None
             if line.approval_type in ['AND', 'OR', 'ONE']:
                 # 审批类型的按钮更新approve_users
                 btn_type_func = "approve_{}".format(btn_type)
@@ -205,21 +208,22 @@ class CustomApproveDataSet(DataSet):
                 else:
                     # 更新当前审批的下一审批节点审批人
                     temp_approve_users = ''
-                    if cur_line != next_line:  # 当前节点不是最后一个
-                        temp_approve_users = ','.join(next_line.sudo().user_ids.mapped('user_uuid'))
+                    if next_line:  # 当前节点不是最后一个
+                        temp_approve_users = ','.join(next_line.user_ids.mapped('user_uuid'))
                     res = super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
 
-                # print('===============审批过后的approve——uuid', temp_approve_users)
                 cur_record.approve_users = temp_approve_users
-                self.gen_msg_to_cur_doc(cur_line, cur_record, 'agree')
+                self.gen_msg_to_cur_doc(cur_line, cur_record, 'agree', next_line)
                 return res
             elif cur_line.approval_type in ['OR', 'ONE']:
                 record_dict.update(dict(approval_type=cur_line.approval_type, approval_result='agree'))
                 record_model.create(record_dict)
                 # 更新到下一级的状态
-                temp_approve_users = ','.join(next_line.user_ids.mapped('user_uuid'))
+                temp_approve_users = ''
+                if next_line:
+                    temp_approve_users = ','.join(next_line.user_ids.mapped('user_uuid'))
                 cur_record.approve_users = temp_approve_users
-                self.gen_msg_to_cur_doc(cur_line, cur_record, 'agree')
+                self.gen_msg_to_cur_doc(cur_line, cur_record, 'agree', next_line)
                 res = super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
                 return res
         elif btn_type_func in ['approve_refuse']:
@@ -229,7 +233,7 @@ class CustomApproveDataSet(DataSet):
             cur_line = temp_line_dict['cur_line']
             record_dict.update(dict(approval_result='refuse', approval_type=cur_line.approval_type))
             record_model.create(record_dict)
-            # cur_record.approve_users = 'init'
+            cur_record.approve_users = 'init'
             self.gen_msg_to_cur_doc(cur_line, cur_record, 'refuse')
             return super(CustomApproveDataSet, self).call_button(model, method, args, domain_id, context_id)
 
@@ -240,7 +244,8 @@ class CustomApproveDataSet(DataSet):
 
             record_dict.update(dict(approval_result='submit'))
             record_model.create(record_dict)
-
+            if not next_line:
+                raise Warning('未配置审核节点，请联系管理')
             users_uuid = ','.join(next_line.user_ids.mapped('user_uuid'))
             cur_record.approve_users = users_uuid
             self.gen_msg_to_cur_doc(cur_line, cur_record, msg_type='submit', next_approve_line=next_line)
@@ -253,21 +258,25 @@ class CustomApproveDataSet(DataSet):
 
             record_dict.update(dict(approval_result='cancel'))
             record_model.create(record_dict)
-
-            users_uuid = ','.join(next_line.user_ids.mapped('user_uuid'))
-            print('==============》此时为取消 更新当前审核人', users_uuid)
+            if next_line:
+                users_uuid = ','.join(next_line.user_ids.mapped('user_uuid'))
             cur_record.approve_users = 'init'
-            self.gen_msg_to_cur_doc(cur_line, cur_record)
-
+            self.gen_msg_to_cur_doc(cur_line, cur_record, msg_type='cancel')
 
     @staticmethod
     def gen_msg_to_cur_doc(approve_line, cur_record, msg_type='tip', next_approve_line=None):
         type_str_dict = dict(approve_line.APPROVE_TYPE)
         approve_type = type_str_dict.get(approve_line.approval_type)
         cur_user_name = request.env.user.name
-        msg_next = ''
-        if msg_type == 'tip':
+        msg_next = msg = ''
+        if next_approve_line:
+            next_approve_type = type_str_dict.get(next_approve_line.approval_type)
+            next_approve_user = ','.join(next_approve_line.user_ids.mapped('name'))
+            msg_next = '本单据当前审批类型为{}, 应由{}审批, 悉知'.format(next_approve_type, next_approve_user)
+        else:
+            msg_next = '本单据审批流程结束'
 
+        if msg_type == 'tip':
             msg = '该单据当前审批类型:{}, 审批人{}'. \
                 format(approve_type,
                        ','.join(approve_line.user_ids.mapped('name')))
@@ -277,13 +286,12 @@ class CustomApproveDataSet(DataSet):
             msg = '该单据当前审批类型{}, {}拒绝了审批，悉知'.format(approve_type, cur_user_name)
         elif msg_type == 'submit':
             msg = '单据本次审核类型为:{}, 由{}提交审批，悉知'.format(approve_type, cur_user_name)
-            next_approve_type = type_str_dict.get(next_approve_line.approval_type)
-            next_approve_user = ','.join(next_approve_line.user_ids.mapped('name'))
-            msg_next = '本单据当前审批类型为{}, 应由{}审批, 悉知'.format(next_approve_type, next_approve_user)
         elif msg_type == 'cancel':
             msg = '单据本次操作类型为:{}, 由{}取消审批，悉知'.format(approve_type, cur_user_name)
 
-        cur_record.message_post(body=msg, message_type='notification')
+        # 发送消息
+        if msg:
+            cur_record.message_post(body=msg, message_type='notification')
         if msg_next:
             cur_record.message_post(body=msg_next, message_type='notification')
 
