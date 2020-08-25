@@ -9,7 +9,9 @@ class DingDingApprovalRecord(models.Model):
 
     APPROVALRESULT = [('submit', '提交'), ('agree', '同意'), ('refuse', '拒绝'), ('cancel', '取消')]
 
-    model_name = fields.Char(string='模型名称', index=True)
+    model_name = fields.Char(string='模型名称', index=True, help='例如sale.order')
+    model_description = fields.Char(string='模型描述', help='例如其他出库申请')
+    rec_display_name = fields.Char(string='记录显示名称', help='QT-300-00000034')
     rec_id = fields.Integer(string="记录ID", index=True)
     # process_instance = fields.Char(string="审批实例ID", index=True, required=True)
     oper_uid = fields.Many2one('res.users', string="操作人", required=True)

@@ -7,8 +7,9 @@
         <field name="model">custom.approve.record</field>
         <field name="arch" type="xml">
             <tree default_order="id desc" create="0" edit="0" delete="0">
-                <field name="model_name"/>
+                <field name="model_description" string="模型描述"/>
                 <field name="rec_id"/>
+                <field name="rec_display_name" string="记录名称"/>
                 <field name="approval_type"/>
                 <field name="approval_result"/>
                 <!--<field name="approval_content"/>-->

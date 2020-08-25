@@ -330,7 +330,8 @@ def modify_form_view(self, result, button_list):
         refuse_btn_string = button_dict.get('refuse_btn_string', 'sfdfasdfsafs')
         node_line_type = button_dict.get('node_line_type', 'sfdfasdfsafs')
         node_only_self = button_dict.get('node_only_self', 'sfdfasdfsafs')
-
+        # print('\nagree_btn_string---------------', agree_btn_string, agree_btn_func)
+        # print('refuse_btn_string---------------', refuse_btn_string, refuse_btn_func)
         if node_line_type in ['AND', 'OR', 'ONE']:
             control_users = 'approve_users'
         elif node_line_type in ['submit']:
@@ -338,7 +339,7 @@ def modify_form_view(self, result, button_list):
         elif node_line_type in ['cancel']:
             control_users = 'cancel_users'
         else:
-            control_users='create_uid.user_uuid'
+            control_users = 'create_uid.user_uuid'
         btns = header.xpath("//button[@name='{}']".format(agree_btn_func))
         btns += header.xpath("//button[@name='{}']".format(refuse_btn_func))
         for btn in btns:
@@ -347,6 +348,7 @@ def modify_form_view(self, result, button_list):
                 _logger.warning('修改按钮{},:排除重复'.format(btn.get('string')))
                 continue
             modifier = update_modifiers_of_element(self, btn.get('modifiers', '{}'), control_users)
+            # print('modifier----new---old--', modifier, btn.get('modifiers', '{}'))
             btn.set('modifiers', modifier)
     result['arch'] = etree.tostring(root)
     return
