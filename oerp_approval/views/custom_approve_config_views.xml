@@ -38,6 +38,7 @@
                                 <group>
                                     <field name="approve_line_ids" string="审批节点">
                                         <tree string="审批人" editable="bottom">
+                                            <field name="node_name" placeholder="节点名称..."/>
                                             <field name="group_id" placeholder="权限组..."/>
                                             <field name="user_ids" widget="many2many_tags" string="审批/申请人"/>
                                             <field name="approval_type"/>
